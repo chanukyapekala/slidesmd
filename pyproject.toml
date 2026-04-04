@@ -3,12 +3,12 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = "slides-agent"
+name = "slidesmd"
 version = "0.1.0"
-description = "Auto-index PowerPoint presentations into a central agents.md for Microsoft Copilot search"
+description = "Auto-index PowerPoint presentations into a central agents.md — queryable by any AI"
 authors = ["Chanukya Pekala <chanukya.pekala@gmail.com>"]
 readme = "README.md"
-packages = [{include = "slides_agent"}]
+packages = [{include = "slidesmd"}]
 
 [tool.poetry.dependencies]
 python = ">=3.10"
@@ -18,7 +18,7 @@ typer = ">=0.12.0"
 rich = ">=13.0.0"
 
 [tool.poetry.scripts]
-slides-agent = "slides_agent.cli:app"
+slidesmd = "slidesmd.cli:app"
 
 [tool.ruff]
 line-length = 88

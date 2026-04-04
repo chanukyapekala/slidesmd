@@ -1,4 +1,4 @@
-"""slides-agent CLI — index and search your PowerPoint presentations."""
+"""slidesmd CLI — index and search your PowerPoint presentations."""
 
 from pathlib import Path
 
@@ -6,9 +6,9 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from slides_agent.extractor import extract
-from slides_agent.indexer import build_index
-from slides_agent.watcher import watch as _watch
+from slidesmd.extractor import extract
+from slidesmd.indexer import build_index
+from slidesmd.watcher import watch as _watch
 
 app = typer.Typer(help="Auto-index PowerPoint presentations into agents.md for Copilot.")
 console = Console()
