@@ -1,5 +1,7 @@
 # slidesmd
 
+[![PyPI version](https://badge.fury.io/py/slidesmd.svg)](https://pypi.org/project/slidesmd/)
+
 > Auto-index your PowerPoint presentations into a central `agents.md` — queryable by any AI.
 
 Save a `.pptx` to your folder — `agents.md` updates automatically. Ask Claude, Copilot, or a local Ollama model anything across all your decks.
