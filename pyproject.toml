@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "slidesmd"
-version = "0.1.0"
+version = "0.1.1"
 description = "Auto-index PowerPoint presentations into a central agents.md — queryable by any AI"
 authors = ["Chanukya Pekala <chanukya.pekala@gmail.com>"]
 readme = "README.md"
