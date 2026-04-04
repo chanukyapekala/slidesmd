@@ -5,6 +5,8 @@ from pathlib import Path
 
 from pptx import Presentation
 
+from slidesmd.image_parser import ImageResult, extract_images_from_slide, parse_image
+
 
 @dataclass
 class PresentationMeta:
@@ -14,6 +16,7 @@ class PresentationMeta:
     topics: list[str] = field(default_factory=list)
     todos: list[str] = field(default_factory=list)
     slide_summaries: list[tuple[str, str]] = field(default_factory=list)  # (title, body)
+    image_results: list[tuple[str, ImageResult]] = field(default_factory=list)  # (slide_title, result)
 
 
 def extract(pptx_path: Path) -> PresentationMeta:
@@ -24,6 +27,7 @@ def extract(pptx_path: Path) -> PresentationMeta:
     topics = _extract_topics(prs)
     todos = _extract_todos(prs)
     slide_summaries = _extract_slide_summaries(prs)
+    image_results = _extract_images(prs)
 
     return PresentationMeta(
         title=title,
@@ -32,6 +36,7 @@ def extract(pptx_path: Path) -> PresentationMeta:
         topics=topics,
         todos=todos,
         slide_summaries=slide_summaries,
+        image_results=image_results,
     )
 
 
@@ -107,6 +112,24 @@ def _extract_slide_summaries(prs: Presentation) -> list[tuple[str, str]]:
             summaries.append((slide_title, body))
 
     return summaries
+
+
+def _extract_images(prs: Presentation) -> list[tuple[str, ImageResult]]:
+    """Extract and parse images from all slides."""
+    results = []
+    for slide in prs.slides:
+        slide_title = ""
+        for shape in slide.shapes:
+            if _placeholder_idx(shape) == 0 and shape.has_text_frame:
+                slide_title = shape.text_frame.text.strip()
+                break
+
+        for image in extract_images_from_slide(slide):
+            result = parse_image(image, slide_title)
+            if result.method != "skipped":
+                results.append((slide_title, result))
+
+    return results
 
 
 def _extract_todos(prs: Presentation) -> list[str]:

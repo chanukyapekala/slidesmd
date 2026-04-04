@@ -47,6 +47,13 @@ def _render(presentations: list[PresentationMeta]) -> str:
             for todo in meta.todos:
                 lines.append(f"  - {todo}")
 
+        if meta.image_results:
+            lines += ["", "**Images:**", ""]
+            for slide_title, img in meta.image_results:
+                context = f"_{slide_title}_: " if slide_title else ""
+                method_tag = f"[{img.method}]"
+                lines.append(f"- {context}{img.text} {method_tag}")
+
         if meta.slide_summaries:
             lines += ["", "**Slide content:**", ""]
             for i, (slide_title, body) in enumerate(meta.slide_summaries, 1):

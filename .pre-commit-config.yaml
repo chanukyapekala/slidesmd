@@ -1,0 +1,33 @@
+repos:
+  # Linting and formatting
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.4
+    hooks:
+      - id: ruff
+        args: [--fix]
+
+  # General hygiene
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+  # Block .pptx files and generated agents.md
+  - repo: local
+    hooks:
+      - id: block-pptx
+        name: Block .pptx files
+        language: fail
+        entry: "Do not commit .pptx files — they are user data, not source code."
+        files: \.pptx$
+
+      - id: block-agents-md
+        name: Block agents.md
+        language: fail
+        entry: "Do not commit agents.md — it is AI-generated output, not source code."
+        files: (^|/)agents\.md$
