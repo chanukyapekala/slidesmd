@@ -1,0 +1,29 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "slides-agent"
+version = "0.1.0"
+description = "Auto-index PowerPoint presentations into a central agents.md for Microsoft Copilot search"
+authors = ["Chanukya Pekala <chanukya.pekala@gmail.com>"]
+readme = "README.md"
+packages = [{include = "slides_agent"}]
+
+[tool.poetry.dependencies]
+python = ">=3.10"
+watchdog = ">=4.0.0"
+python-pptx = ">=1.0.0"
+typer = ">=0.12.0"
+rich = ">=13.0.0"
+
+[tool.poetry.scripts]
+slides-agent = "slides_agent.cli:app"
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
