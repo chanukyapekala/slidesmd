@@ -2,8 +2,7 @@
 
 from dataclasses import dataclass, field
 from pathlib import Path
-
-from pptx import Presentation
+from typing import Protocol, runtime_checkable
 
 from slidesmd.image_parser import ImageResult, extract_images_from_slide, parse_image
 
@@ -19,26 +18,48 @@ class PresentationMeta:
     image_results: list[tuple[str, ImageResult]] = field(default_factory=list)  # (slide_title, result)
 
 
-def extract(pptx_path: Path) -> PresentationMeta:
-    """Extract metadata and to-dos from a PowerPoint file."""
-    prs = Presentation(pptx_path)
+@runtime_checkable
+class SlideExtractor(Protocol):
+    """Protocol for pluggable PPTX extraction backends."""
 
-    title = _extract_title(prs, pptx_path)
-    topics = _extract_topics(prs)
-    todos = _extract_todos(prs)
-    slide_summaries = _extract_slide_summaries(prs)
-    image_results = _extract_images(prs)
+    def extract(self, path: Path) -> PresentationMeta:
+        """Extract structured metadata from a presentation file."""
+        ...
 
-    return PresentationMeta(
-        title=title,
-        file_path=pptx_path,
-        slide_count=len(prs.slides),
-        topics=topics,
-        todos=todos,
-        slide_summaries=slide_summaries,
-        image_results=image_results,
-    )
 
+class PptxExtractor:
+    """Default extractor backed by python-pptx."""
+
+    def extract(self, path: Path) -> PresentationMeta:
+        from pptx import Presentation  # deferred to avoid import at module load time; custom extractors need not use pptx at all
+
+        prs = Presentation(path)
+        return PresentationMeta(
+            title=_extract_title(prs, path),
+            file_path=path,
+            slide_count=len(prs.slides),
+            topics=_extract_topics(prs),
+            todos=_extract_todos(prs),
+            slide_summaries=_extract_slide_summaries(prs),
+            image_results=_extract_images(prs),
+        )
+
+
+_default_extractor = PptxExtractor()
+
+
+def extract(pptx_path: Path, extractor: SlideExtractor | None = None) -> PresentationMeta:
+    """Extract metadata from a presentation file.
+
+    Pass a custom *extractor* to use an alternative backend; defaults to
+    PptxExtractor (python-pptx).
+    """
+    return (extractor or _default_extractor).extract(pptx_path)
+
+
+# ---------------------------------------------------------------------------
+# Internal helpers (python-pptx specific — used only by PptxExtractor)
+# ---------------------------------------------------------------------------
 
 def _placeholder_idx(shape: object) -> int | None:
     """Return placeholder index or None if shape is not a placeholder."""
@@ -52,17 +73,21 @@ def _placeholder_idx(shape: object) -> int | None:
 _GENERIC_TITLES = {"powerpoint presentation", "presentation", "untitled"}
 
 
-def _first_slide_title(prs: Presentation) -> str:
-    if prs.slides:
-        for shape in prs.slides[0].shapes:
+def _first_slide_title(prs: object) -> str:
+    try:
+        slides = prs.slides  # type: ignore[attr-defined]
+    except AttributeError:
+        return ""
+    if slides:
+        for shape in slides[0].shapes:
             if _placeholder_idx(shape) == 0 and shape.has_text_frame:
                 return shape.text_frame.text.strip()
     return ""
 
 
-def _extract_title(prs: Presentation, fallback: Path) -> str:
+def _extract_title(prs: object, fallback: Path) -> str:
     """Use core properties title unless it's generic, then prefer first slide title."""
-    core_title = (prs.core_properties.title or "").strip()
+    core_title = (prs.core_properties.title or "").strip()  # type: ignore[attr-defined]
     if core_title and core_title.lower() not in _GENERIC_TITLES:
         return core_title
 
@@ -76,10 +101,10 @@ def _extract_title(prs: Presentation, fallback: Path) -> str:
     return fallback.stem.replace("-", " ").replace("_", " ").title()
 
 
-def _extract_topics(prs: Presentation) -> list[str]:
+def _extract_topics(prs: object) -> list[str]:
     """Extract slide titles as topic list."""
     topics: list[str] = []
-    for slide in prs.slides:
+    for slide in prs.slides:  # type: ignore[attr-defined]
         for shape in slide.shapes:
             if _placeholder_idx(shape) == 0 and shape.has_text_frame:
                 text = shape.text_frame.text.strip()
@@ -88,10 +113,10 @@ def _extract_topics(prs: Presentation) -> list[str]:
     return topics
 
 
-def _extract_slide_summaries(prs: Presentation) -> list[tuple[str, str]]:
+def _extract_slide_summaries(prs: object) -> list[tuple[str, str]]:
     """Extract (slide_title, body_text) for each slide."""
     summaries = []
-    for slide in prs.slides:
+    for slide in prs.slides:  # type: ignore[attr-defined]
         slide_title = ""
         body_parts: list[str] = []
 
@@ -114,10 +139,10 @@ def _extract_slide_summaries(prs: Presentation) -> list[tuple[str, str]]:
     return summaries
 
 
-def _extract_images(prs: Presentation) -> list[tuple[str, ImageResult]]:
+def _extract_images(prs: object) -> list[tuple[str, ImageResult]]:
     """Extract and parse images from all slides."""
     results = []
-    for slide in prs.slides:
+    for slide in prs.slides:  # type: ignore[attr-defined]
         slide_title = ""
         for shape in slide.shapes:
             if _placeholder_idx(shape) == 0 and shape.has_text_frame:
@@ -132,12 +157,12 @@ def _extract_images(prs: Presentation) -> list[tuple[str, ImageResult]]:
     return results
 
 
-def _extract_todos(prs: Presentation) -> list[str]:
+def _extract_todos(prs: object) -> list[str]:
     """Extract lines containing TODO, Action, or follow-up keywords."""
     keywords = ("todo", "action item", "follow up", "follow-up", "next step", "to-do")
     todos: list[str] = []
 
-    for slide in prs.slides:
+    for slide in prs.slides:  # type: ignore[attr-defined]
         for shape in slide.shapes:
             if not shape.has_text_frame:
                 continue
