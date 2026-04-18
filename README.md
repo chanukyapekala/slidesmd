@@ -61,32 +61,35 @@ Search across all presentations without opening an AI.
 slidesmd search ~/Documents/Presentations "data pipelines"
 ```
 
+### Query with a local LLM
+
+Ask a natural language question across all your presentations. Requires [Ollama](https://ollama.com) running locally.
+
+```bash
+slidesmd query ~/Documents/Presentations "What are the action items from last quarter?"
+```
+
+Override the default model (`llama3`):
+
+```bash
+slidesmd query ~/Documents/Presentations "Summarise the Iceberg talk" --model mistral
+```
+
+**Prerequisites:**
+```bash
+# 1. Install Ollama: https://ollama.com
+ollama serve
+ollama pull llama3
+
+# 2. Install the Python client
+pip install ollama
+```
+
 ---
 
-## Querying with an AI
+## Querying with an external AI
 
-`agents.md` is plain Markdown — any AI can read it. Point your AI at the folder, or feed it directly from the terminal.
-
-### Ollama (local, offline)
-
-First generate the index:
-
-```bash
-slidesmd index ~/Documents/Presentations
-```
-
-Then query it:
-
-```bash
-ollama run llama3 "$(cat ~/Documents/Presentations/agents.md)"
-```
-
-Then ask anything:
-
-```
->>> What presentations have I done about data pipelines?
->>> Summarise my Iceberg talk in 3 bullet points.
-```
+`agents.md` is plain Markdown — any AI can read it directly.
 
 ### Claude / ChatGPT / Copilot
 
