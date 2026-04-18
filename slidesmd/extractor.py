@@ -31,7 +31,7 @@ class PptxExtractor:
     """Default extractor backed by python-pptx."""
 
     def extract(self, path: Path) -> PresentationMeta:
-        from pptx import Presentation  # deferred so the dep is optional
+        from pptx import Presentation  # deferred to avoid import at module load time; custom extractors need not use pptx at all
 
         prs = Presentation(path)
         return PresentationMeta(

@@ -103,6 +103,10 @@ def query(
     model: str = typer.Option(querier.DEFAULT_MODEL, "--model", "-m", help="Ollama model to use"),
 ) -> None:
     """Ask a question about your presentations using a local Ollama model."""
+    if not folder.exists():
+        console.print(f"[red]Folder not found: {folder}[/red]")
+        raise typer.Exit(1)
+
     if not querier.is_available():
         console.print("[red]ollama package not found. Run: pip install ollama[/red]")
         raise typer.Exit(1)
@@ -129,7 +133,7 @@ def query(
 
     try:
         for token in querier.query(presentations, question, model=model):
-            console.print(token, end="")
+            console.print(token, end="", markup=False, highlight=False)
         console.print()
     except RuntimeError as e:
         console.print(f"\n[red]{e}[/red]")
