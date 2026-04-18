@@ -1,6 +1,6 @@
 # slidesmd
 
-[![PyPI version](https://badge.fury.io/py/slidesmd.svg)](https://pypi.org/project/slidesmd/)
+[![PyPI version](https://img.shields.io/pypi/v/slidesmd)](https://pypi.org/project/slidesmd/)
 
 > Auto-index your PowerPoint presentations into a central `agents.md` — queryable by any AI.
 
