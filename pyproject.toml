@@ -21,6 +21,9 @@ pytesseract = "^0.3.13"
 [tool.poetry.scripts]
 slidesmd = "slidesmd.cli:app"
 
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.15.11"
+
 [tool.ruff]
 line-length = 88
 target-version = "py310"
