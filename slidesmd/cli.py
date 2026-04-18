@@ -9,6 +9,7 @@ from rich.table import Table
 from slidesmd.extractor import extract
 from slidesmd.indexer import build_index
 from slidesmd.watcher import watch as _watch
+from slidesmd import querier
 
 app = typer.Typer(help="Auto-index PowerPoint presentations into agents.md for Copilot.")
 console = Console()
@@ -93,3 +94,43 @@ def search(
         table.add_row(meta.title, str(meta.slide_count), str(meta.file_path))
 
     console.print(table)
+
+
+@app.command()
+def query(
+    folder: Path = typer.Argument(..., help="Path to your presentations folder"),
+    question: str = typer.Argument(..., help="Question to ask about the slides"),
+    model: str = typer.Option(querier.DEFAULT_MODEL, "--model", "-m", help="Ollama model to use"),
+) -> None:
+    """Ask a question about your presentations using a local Ollama model."""
+    if not querier.is_available():
+        console.print("[red]ollama package not found. Run: pip install ollama[/red]")
+        raise typer.Exit(1)
+
+    pptx_files = list(folder.rglob("*.pptx"))
+
+    if not pptx_files:
+        console.print("[yellow]No .pptx files found.[/yellow]")
+        raise typer.Exit(0)
+
+    presentations = []
+    with console.status("Extracting slide content..."):
+        for f in pptx_files:
+            try:
+                presentations.append(extract(f))
+            except Exception as e:
+                console.print(f"[yellow]Skipped {f.name}: {e}[/yellow]")
+
+    if not presentations:
+        console.print("[red]No presentations could be extracted.[/red]")
+        raise typer.Exit(1)
+
+    console.print(f"[dim]Querying {len(presentations)} presentation(s) with {model}...[/dim]\n")
+
+    try:
+        for token in querier.query(presentations, question, model=model):
+            console.print(token, end="")
+        console.print()
+    except RuntimeError as e:
+        console.print(f"\n[red]{e}[/red]")
+        raise typer.Exit(1)
