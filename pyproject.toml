@@ -4,14 +4,14 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "slidesmd"
-version = "0.3.0"
+version = "0.3.1"
 description = "Auto-index PowerPoint presentations into a central agents.md — queryable by any AI"
 authors = ["Chanukya Pekala <chanukya.pekala@gmail.com>"]
 readme = "README.md"
 packages = [{include = "slidesmd"}]
 
 [tool.poetry.dependencies]
-python = ">=3.10"
+python = ">=3.10,<4.0"
 watchdog = ">=4.0.0"
 python-pptx = ">=1.0.0"
 typer = ">=0.12.0"
