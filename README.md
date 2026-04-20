@@ -140,12 +140,64 @@ slidesmd watch "C:\Users\you\Documents\Slides"    # Windows
 
 ---
 
+## MCP Server
+
+SlidesMD ships an MCP server so Claude Desktop, Cursor, and any other MCP client can query your presentations natively — no scripting required.
+
+### Start the server
+
+```bash
+slidesmd mcp          # via the CLI
+# or
+slidesmd-mcp          # direct entry point
+```
+
+### Claude Desktop config
+
+Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "slidesmd": {
+      "command": "slidesmd-mcp"
+    }
+  }
+}
+```
+
+### Available tools
+
+| Tool | What it does |
+|------|-------------|
+| `index_folder` | Index all `.pptx` in a folder and write `agents.md` |
+| `search_presentations` | Keyword search across titles, topics, todos, and slide content |
+| `get_presentation` | Get metadata for a single `.pptx` file |
+| `query_content` | Ask a question against a file or folder using a local Ollama model |
+
+All tools return **compact, factual responses by default**. Pass `detailed=true` to get full slide-level content — useful when the AI needs to drill deeper after an initial answer.
+
+### Example interaction
+
+```
+You: What are the key features of Apache Iceberg?
+AI: [calls get_presentation, compact]
+    Apache Iceberg · 31 slides · Topics: Introduction, Agenda, Iceberg Layout...
+
+You: Give me the full slide content on the layout
+AI: [calls get_presentation, detailed=true]
+    [metadata.json]: Snapshot details · Partition details · Schema details...
+```
+
+---
+
 ## Stack
 
 - [`watchdog`](https://pypi.org/project/watchdog/) — file system monitoring
 - [`python-pptx`](https://pypi.org/project/python-pptx/) — PowerPoint extraction
 - [`typer`](https://typer.tiangolo.com/) — CLI framework
 - [`rich`](https://rich.readthedocs.io/) — terminal output
+- [`fastmcp`](https://github.com/jlowin/fastmcp) — MCP server framework
 
 ---
 
