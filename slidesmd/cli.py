@@ -12,6 +12,15 @@ from slidesmd.watcher import watch as _watch
 from slidesmd import querier
 
 app = typer.Typer(help="Auto-index PowerPoint presentations into agents.md for Copilot.")
+
+
+@app.command()
+def mcp() -> None:
+    """Start the SlidesMD MCP server (stdio transport)."""
+    from slidesmd.mcp_server import main
+    main()
+
+
 console = Console()
 
 
