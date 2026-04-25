@@ -9,7 +9,7 @@ from rich.table import Table
 from slidesmd.extractor import extract
 from slidesmd.indexer import build_index
 from slidesmd.watcher import watch as _watch
-from slidesmd import querier
+from slidesmd import embedder, querier
 
 app = typer.Typer(help="Auto-index PowerPoint presentations into agents.md for Copilot.")
 
@@ -101,6 +101,73 @@ def search(
 
     for meta in results:
         table.add_row(meta.title, str(meta.slide_count), str(meta.file_path))
+
+    console.print(table)
+
+
+@app.command("embed")
+def embed_cmd(
+    folder: Path = typer.Argument(..., help="Path to your presentations folder"),
+) -> None:
+    """Build or update the semantic embedding index for a folder."""
+    if not folder.exists():
+        console.print(f"[red]Folder not found: {folder}[/red]")
+        raise typer.Exit(1)
+
+    if not embedder.is_available():
+        console.print(
+            "[red]Semantic search dependencies not installed.[/red]\n"
+            "Run: pip install slidesmd[semantic]"
+        )
+        raise typer.Exit(1)
+
+    with console.status("Building embedding index..."):
+        indexed, skipped = embedder.index_folder(folder)
+
+    console.print(f"[green]{indexed} file(s) indexed, {skipped} skipped (unchanged or failed).[/green]")
+
+
+@app.command("semantic-search")
+def semantic_search_cmd(
+    folder: Path = typer.Argument(..., help="Path to your presentations folder"),
+    query: str = typer.Argument(..., help="Natural language query"),
+    top_k: int = typer.Option(5, "--top-k", "-k", help="Number of results"),
+) -> None:
+    """Search slides by meaning using vector similarity."""
+    if not folder.exists():
+        console.print(f"[red]Folder not found: {folder}[/red]")
+        raise typer.Exit(1)
+
+    if not embedder.is_available():
+        console.print(
+            "[red]Semantic search dependencies not installed.[/red]\n"
+            "Run: pip install slidesmd[semantic]"
+        )
+        raise typer.Exit(1)
+
+    results = embedder.search(folder, query, top_k=top_k)
+
+    if not results:
+        console.print(f"[yellow]No results for '{query}'. Have you run `slidesmd embed` first?[/yellow]")
+        return
+
+    table = Table(title=f"Semantic search: '{query}'")
+    table.add_column("#", justify="right", style="dim")
+    table.add_column("Score", justify="right")
+    table.add_column("File", style="cyan")
+    table.add_column("Slide", justify="right")
+    table.add_column("Preview")
+
+    for i, r in enumerate(results, 1):
+        score = max(0.0, 1.0 - r.distance)
+        preview = r.chunk.chunk_text[:100] + ("..." if len(r.chunk.chunk_text) > 100 else "")
+        table.add_row(
+            str(i),
+            f"{score:.2f}",
+            Path(r.chunk.file_path).name,
+            str(r.chunk.slide_index + 1),
+            preview,
+        )
 
     console.print(table)
 
