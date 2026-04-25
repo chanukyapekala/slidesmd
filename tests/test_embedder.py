@@ -2,13 +2,9 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from unittest.mock import patch
 
-import pytest
-
 from slidesmd.embedder import (
-    MAX_CHUNK_TOKENS,
     _chunk_slide,
     chunks_from_presentation,
 )

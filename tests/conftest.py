@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import field
 from pathlib import Path
 
 import pytest

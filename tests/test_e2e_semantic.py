@@ -13,10 +13,8 @@ from pathlib import Path
 
 import pytest
 from pptx import Presentation
-from pptx.util import Inches
 
 from slidesmd import embedder, vector_store
-from slidesmd.extractor import extract
 
 
 # ---------------------------------------------------------------------------
@@ -177,7 +175,7 @@ class TestIncrementalIndex:
         """If a file is modified, it should be re-embedded."""
         import time
 
-        deck = _make_pptx(
+        _make_pptx(
             tmp_path / "evolving.pptx",
             "V1",
             [("Slide 1", "Original content about cats and dogs.")],
