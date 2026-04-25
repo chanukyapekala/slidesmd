@@ -7,7 +7,7 @@ from pathlib import Path
 
 from fastmcp import FastMCP
 
-from slidesmd import querier
+from slidesmd import embedder, querier
 from slidesmd.extractor import PresentationMeta, extract
 from slidesmd.indexer import build_index
 
@@ -250,6 +250,61 @@ def query_content(
         return f"{answer}\n\n---\nSource context:\n{context}"
 
     return answer
+
+
+@mcp.tool()
+def embed_folder(folder: str) -> str:
+    """Build or update the semantic embedding index for all presentations in a folder.
+
+    Uses sentence-transformers (all-MiniLM-L6-v2) and SQLite.
+    Only re-embeds files that have changed since the last index.
+    Must be called before semantic_search.
+    """
+    if not embedder.is_available():
+        return (
+            "Semantic search dependencies not installed. "
+            "Run: pip install slidesmd[semantic]"
+        )
+
+    folder_path = Path(folder)
+    if not folder_path.exists():
+        return f"Folder not found: {folder}"
+
+    indexed, skipped = embedder.index_folder(folder_path)
+    return f"Embedding index updated: {indexed} file(s) indexed, {skipped} skipped (unchanged or failed)."
+
+
+@mcp.tool()
+def semantic_search(folder: str, query: str, top_k: int = 5) -> str:
+    """Search slides by meaning using vector similarity.
+
+    Returns the top_k most relevant slide chunks ranked by semantic similarity.
+    Requires embed_folder to have been run first.
+    """
+    if not embedder.is_available():
+        return (
+            "Semantic search dependencies not installed. "
+            "Run: pip install slidesmd[semantic]"
+        )
+
+    folder_path = Path(folder)
+    if not folder_path.exists():
+        return f"Folder not found: {folder}"
+
+    results = embedder.search(folder_path, query, top_k=top_k)
+    if not results:
+        return f"No results for '{query}'. Have you run embed_folder first?"
+
+    lines = [f"Top {len(results)} results for '{query}':\n"]
+    for i, r in enumerate(results, 1):
+        c = r.chunk
+        score = max(0.0, 1.0 - r.distance)  # convert distance to similarity
+        source = Path(c.file_path).name
+        lines.append(f"{i}. [{source} — Slide {c.slide_index + 1}] (score: {score:.2f})")
+        lines.append(f"   {c.chunk_text[:200]}{'...' if len(c.chunk_text) > 200 else ''}")
+        lines.append("")
+
+    return "\n".join(lines)
 
 
 # ---------------------------------------------------------------------------

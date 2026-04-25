@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "slidesmd"
-version = "0.3.1"
+version = "0.4.0"
 description = "Auto-index PowerPoint presentations into a central agents.md — queryable by any AI"
 authors = ["Chanukya Pekala <chanukya.pekala@gmail.com>"]
 readme = "README.md"
@@ -18,6 +18,11 @@ typer = ">=0.12.0"
 rich = ">=13.0.0"
 pytesseract = "^0.3.13"
 fastmcp = ">=2.0.0"
+sentence-transformers = {version = ">=2.2.0", optional = true}
+numpy = {version = ">=1.24.0", optional = true}
+
+[tool.poetry.extras]
+semantic = ["sentence-transformers", "numpy"]
 
 [tool.poetry.scripts]
 slidesmd = "slidesmd.cli:app"
@@ -25,6 +30,7 @@ slidesmd-mcp = "slidesmd.mcp_server:main"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.15.11"
+pytest = ">=7.0"
 
 [tool.ruff]
 line-length = 88
