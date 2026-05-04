@@ -1,10 +1,16 @@
 """Extract metadata and to-dos from .pptx files."""
 
+from __future__ import annotations
+
+import logging
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Protocol, runtime_checkable
 
 from slidesmd.image_parser import ImageResult, extract_images_from_slide, parse_image
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -47,14 +53,102 @@ class PptxExtractor:
 
 _default_extractor = PptxExtractor()
 
+_QUALITY_THRESHOLD = 0.4
+
 
 def extract(pptx_path: Path, extractor: SlideExtractor | None = None) -> PresentationMeta:
     """Extract metadata from a presentation file.
 
-    Pass a custom *extractor* to use an alternative backend; defaults to
-    PptxExtractor (python-pptx).
+    Pass a custom *extractor* to bypass the cascade and use it directly.
+    When no extractor is specified, a scored cascade is used:
+    PptxExtractor → OoxmlExtractor → LibreOfficeExtractor.
     """
-    return (extractor or _default_extractor).extract(pptx_path)
+    if extractor is not None:
+        return extractor.extract(pptx_path)
+    return _cascading_extract(pptx_path)
+
+
+# ---------------------------------------------------------------------------
+# Cascade logic
+# ---------------------------------------------------------------------------
+
+_ooxml_instance: object | None = None
+_lo_instance: object | None = None
+
+
+def _get_ooxml_extractor() -> SlideExtractor:
+    global _ooxml_instance
+    if _ooxml_instance is None:
+        from slidesmd.ooxml_extractor import OoxmlExtractor
+        _ooxml_instance = OoxmlExtractor()
+    return _ooxml_instance  # type: ignore[return-value]
+
+
+def _get_libreoffice_extractor() -> SlideExtractor | None:
+    global _lo_instance
+    if _lo_instance is None:
+        from slidesmd.libreoffice_extractor import LibreOfficeExtractor
+        if LibreOfficeExtractor.is_available():
+            _lo_instance = LibreOfficeExtractor()
+        else:
+            return None
+    return _lo_instance  # type: ignore[return-value]
+
+
+def _build_extractor_chain(path: Path) -> list[tuple[str, SlideExtractor]]:
+    """Select extractors appropriate for the file type."""
+    suffix = path.suffix.lower()
+    chain: list[tuple[str, SlideExtractor]] = []
+
+    if suffix == ".pptx":
+        chain.append(("PptxExtractor", _default_extractor))
+        chain.append(("OoxmlExtractor", _get_ooxml_extractor()))
+
+    lo = _get_libreoffice_extractor()
+    if lo is not None:
+        chain.append(("LibreOfficeExtractor", lo))
+
+    if not chain:
+        if suffix in (".ppt", ".odp"):
+            raise RuntimeError(
+                f"No extractor available for {suffix} files (install LibreOffice)"
+            )
+        # Unknown suffix, try PptxExtractor as best effort
+        chain.append(("PptxExtractor", _default_extractor))
+
+    return chain
+
+
+def _cascading_extract(path: Path) -> PresentationMeta:
+    """Try extractors in order, scoring each result."""
+    from slidesmd.scorer import score_extraction
+
+    threshold = float(os.environ.get("SLIDESMD_QUALITY_THRESHOLD", str(_QUALITY_THRESHOLD)))
+    chain = _build_extractor_chain(path)
+
+    best_result: PresentationMeta | None = None
+    best_score: float = -1.0
+
+    for name, ext in chain:
+        try:
+            result = ext.extract(path)
+            score = score_extraction(result)
+            logger.debug("Extractor %s scored %.2f for %s", name, score, path.name)
+
+            if score >= threshold:
+                return result
+
+            if score > best_score:
+                best_score = score
+                best_result = result
+        except Exception as e:
+            logger.debug("Extractor %s failed for %s: %s", name, path.name, e)
+            continue
+
+    if best_result is not None:
+        return best_result
+
+    raise RuntimeError(f"All extractors failed for {path}")
 
 
 # ---------------------------------------------------------------------------
